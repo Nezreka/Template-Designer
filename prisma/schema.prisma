@@ -1,0 +1,36 @@
+// This is your Prisma schema file
+// Learn more about it at https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../db.sqlite"
+}
+
+// Template model - represents a complete website template
+model Template {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  globalCss String?   // Optional global CSS for the entire template
+  globalJs  String?   // Optional global JavaScript for the entire template
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  sections  Section[] // Relation to sections in this template
+}
+
+// Section model - represents a single section within a template
+model Section {
+  id           String   @id @default(uuid())
+  template     Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId   String
+  sectionTypeId String  // The type of section (e.g., "hero", "welcome")
+  html         String   // HTML content for this section
+  css          String   // CSS specific to this section
+  js           String?  // Optional JavaScript for this section
+  order        Int      // Position in the template
+
+  @@index([templateId])
+}

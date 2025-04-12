@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SectionOrder } from './types';
 import { useBuilder } from './context';
 import { getTemplateSection } from './template-data';
+// Import the new database API
+import { fetchTemplateSection } from '../../lib/template-api';
 
 type DroppableAreaProps = {
   children: React.ReactNode;
@@ -33,11 +35,43 @@ export function SectionItem({ section }: { section: SectionOrder }) {
   const { removeSection, moveSection, getTemplateName } = useBuilder();
   const sectionType = section.sectionTypeId;
   const [activeTab, setActiveTab] = useState<'html' | 'css' | 'js' | null>(null);
+  const [sectionContent, setSectionContent] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   
-  // Get section content from template
-  const sectionContent = section.templateId 
-    ? getTemplateSection(section.templateId, section.sectionTypeId) 
-    : null;
+  // Fetch section content when the section or active tab changes
+  useEffect(() => {
+    if (!section.templateId) return;
+    
+    const loadSectionContent = async () => {
+      // First check if this is a built-in template
+      if (['classic', 'modern', 'luxury'].includes(section.templateId)) {
+        // Use the mock data for built-in templates
+        const mockContent = getTemplateSection(section.templateId, section.sectionTypeId);
+        setSectionContent(mockContent);
+        return;
+      }
+      
+      // Otherwise, fetch from the database
+      setLoading(true);
+      try {
+        const dbContent = await fetchTemplateSection(section.templateId, section.sectionTypeId);
+        if (dbContent) {
+          setSectionContent(dbContent);
+        } else {
+          console.error('No section content found for', section.sectionTypeId);
+        }
+      } catch (error) {
+        console.error('Error fetching section content:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    // Load content when active tab is set or section changes
+    if (activeTab || !sectionContent) {
+      loadSectionContent();
+    }
+  }, [section.templateId, section.sectionTypeId, activeTab]);
   
   // Derive name from section type ID
   const getSectionName = (type: string) => {
@@ -127,13 +161,23 @@ export function SectionItem({ section }: { section: SectionOrder }) {
         </div>
         
         {/* Code preview */}
-        {activeTab && sectionContent && (
+        {activeTab && (
           <div className="mt-2 bg-gray-950 p-3 rounded-md border border-gray-800 max-h-[200px] overflow-auto font-mono text-xs">
-            <pre className="text-gray-200">
-              {activeTab === 'html' && sectionContent.html}
-              {activeTab === 'css' && sectionContent.css}
-              {activeTab === 'js' && sectionContent.js}
-            </pre>
+            {loading ? (
+              <div className="text-center py-4 text-gray-400">
+                <p>Loading content...</p>
+              </div>
+            ) : sectionContent ? (
+              <pre className="text-gray-200">
+                {activeTab === 'html' && sectionContent.html}
+                {activeTab === 'css' && sectionContent.css}
+                {activeTab === 'js' && sectionContent.js}
+              </pre>
+            ) : (
+              <div className="text-center py-4 text-gray-400">
+                <p>No content available</p>
+              </div>
+            )}
           </div>
         )}
       </div>

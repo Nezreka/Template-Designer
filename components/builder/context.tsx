@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
 import { SectionType, SectionOrder } from './types';
+// Use the real API, but keep mock data as fallback
+import { fetchTemplateSection } from '../../lib/template-api';
 import { getTemplateSection } from './template-data';
 
 type BuilderContextType = {
@@ -45,12 +47,27 @@ const sectionTypes: SectionType[] = [
   { id: 'contact', name: 'Contact' },
 ];
 
-// Simple template name mapping
+// Simple template name mapping for built-in templates
 const templateNames: Record<string, string> = {
   'classic': 'Classic Template',
   'modern': 'Modern Template',
   'luxury': 'Luxury Template',
 };
+
+// Cache for database template names
+const dbTemplateNames: Record<string, string> = {};
+
+// Cache for database template sections
+interface DbSectionCache {
+  [templateId: string]: {
+    [sectionTypeId: string]: {
+      html: string;
+      css: string;
+      js: string;
+    };
+  };
+}
+const dbSectionsCache: DbSectionCache = {};
 
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 
@@ -116,6 +133,41 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
     
     // Clear the pending section
     setPendingSection(null);
+    
+    // Preload template data if it's not a built-in template
+    if (!['classic', 'modern', 'luxury'].includes(templateId)) {
+      // Preload template name and section content
+      fetch(`/api/templates/${templateId}`)
+        .then(response => response.json())
+        .then(template => {
+          // Cache template name
+          dbTemplateNames[templateId] = template.name;
+          
+          // Find and cache the specific section
+          const section = template.sections.find(
+            s => s.sectionTypeId === pendingSection?.sectionTypeId
+          );
+          
+          if (section) {
+            // Initialize cache for this template if needed
+            if (!dbSectionsCache[templateId]) {
+              dbSectionsCache[templateId] = {};
+            }
+            
+            // Cache the section data
+            dbSectionsCache[templateId][pendingSection.sectionTypeId] = {
+              html: section.html,
+              css: section.css,
+              js: section.js || ''
+            };
+            
+            console.log(`Preloaded section ${pendingSection.sectionTypeId} from ${template.name}`);
+          }
+        })
+        .catch(error => {
+          console.error('Error preloading template data:', error);
+        });
+    }
   };
 
   // Remove a section from the builder
@@ -148,7 +200,32 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
 
   // Get template name for display
   const getTemplateName = (templateId: string): string => {
-    return templateNames[templateId] || 'Unknown Template';
+    // Check built-in templates first
+    if (templateNames[templateId]) {
+      return templateNames[templateId];
+    }
+    
+    // Check if we've cached this database template name
+    if (dbTemplateNames[templateId]) {
+      return dbTemplateNames[templateId];
+    }
+    
+    // If it's not a built-in or cached template, it's likely from the database
+    // Let's fetch it asynchronously and cache it for next time
+    fetch(`/api/templates/${templateId}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data && data.name) {
+          // Update the cache for next time
+          dbTemplateNames[templateId] = data.name;
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching template name:', error);
+      });
+    
+    // Return a temporary value while we fetch the real name
+    return 'Loading Template...';
   };
 
   // Generate HTML export for the entire template
@@ -170,13 +247,60 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
     const sectionsCSS: string[] = [];
     const sectionsJS: string[] = [];
     
+    // Handle both database and mock templates
     builderSections.forEach(section => {
       if (section.templateId) {
-        const templateSection = getTemplateSection(section.templateId, section.sectionTypeId);
-        if (templateSection) {
-          sectionsHtml.push(templateSection.html);
-          sectionsCSS.push(templateSection.css);
-          sectionsJS.push(templateSection.js);
+        // For built-in templates, use the mock data
+        if (['classic', 'modern', 'luxury'].includes(section.templateId)) {
+          const templateSection = getTemplateSection(section.templateId, section.sectionTypeId);
+          if (templateSection) {
+            sectionsHtml.push(templateSection.html);
+            sectionsCSS.push(templateSection.css);
+            sectionsJS.push(templateSection.js);
+          }
+        } else {
+          // For database templates, check the cache first
+          if (dbSectionsCache[section.templateId] && 
+              dbSectionsCache[section.templateId][section.sectionTypeId]) {
+            
+            const cachedSection = dbSectionsCache[section.templateId][section.sectionTypeId];
+            sectionsHtml.push(cachedSection.html);
+            sectionsCSS.push(cachedSection.css);
+            sectionsJS.push(cachedSection.js);
+            
+          } else {
+            // No cached data, include a placeholder
+            sectionsHtml.push(`<section class="${section.sectionTypeId}"><p>Loading section from database...</p></section>`);
+            sectionsCSS.push(`.${section.sectionTypeId} { padding: 20px; text-align: center; }`);
+            sectionsJS.push('');
+            
+            // Kick off the async fetch for next time
+            fetch(`/api/templates/${section.templateId}`)
+              .then(response => response.json())
+              .then(template => {
+                const dbSection = template.sections.find(s => s.sectionTypeId === section.sectionTypeId);
+                if (dbSection) {
+                  // Cache the section data for future use
+                  if (!dbSectionsCache[section.templateId]) {
+                    dbSectionsCache[section.templateId] = {};
+                  }
+                  
+                  dbSectionsCache[section.templateId][section.sectionTypeId] = {
+                    html: dbSection.html,
+                    css: dbSection.css,
+                    js: dbSection.js || ''
+                  };
+                  
+                  console.log(`Cached section ${section.sectionTypeId} from template ${template.name}`);
+                  
+                  // Also cache the template name while we're at it
+                  dbTemplateNames[section.templateId] = template.name;
+                }
+              })
+              .catch(error => {
+                console.error('Error fetching template section:', error);
+              });
+          }
         }
       }
     });

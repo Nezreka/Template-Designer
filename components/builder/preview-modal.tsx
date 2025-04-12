@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { getTemplateSection } from './template-data';
+import { fetchTemplateSection } from '../../lib/template-api';
 import { SectionOrder } from './types';
 import { useBuilder } from './context';
 import {
@@ -28,18 +29,59 @@ export function PreviewModal({ open, onClose, onExport }: PreviewModalProps) {
     ).join(' ');
   };
   
-  // Get HTML content for each section
-  const getSectionContent = (section: SectionOrder) => {
-    if (!section.templateId) return null;
+  // State for section content
+  const [sectionsContent, setSectionsContent] = useState<{[key: string]: any}>({});
+  const [loading, setLoading] = useState(true);
+  
+  // Load content for all sections when modal opens
+  useEffect(() => {
+    if (!open) return;
     
-    const templateSection = getTemplateSection(section.templateId, section.sectionTypeId);
-    if (!templateSection) return null;
-    
-    return {
-      html: templateSection.html,
-      css: templateSection.css,
-      js: templateSection.js
+    const loadAllSections = async () => {
+      setLoading(true);
+      const newContent: {[key: string]: any} = {};
+      
+      for (const section of builderSections) {
+        if (!section.templateId) continue;
+        
+        try {
+          // Check if it's a built-in template
+          if (['classic', 'modern', 'luxury'].includes(section.templateId)) {
+            // Use mock data
+            const mockContent = getTemplateSection(section.templateId, section.sectionTypeId);
+            if (mockContent) {
+              newContent[section.id] = {
+                html: mockContent.html,
+                css: mockContent.css,
+                js: mockContent.js
+              };
+            }
+          } else {
+            // Fetch from database
+            const dbContent = await fetchTemplateSection(section.templateId, section.sectionTypeId);
+            if (dbContent) {
+              newContent[section.id] = {
+                html: dbContent.html,
+                css: dbContent.css,
+                js: dbContent.js
+              };
+            }
+          }
+        } catch (error) {
+          console.error(`Error loading section ${section.sectionTypeId}:`, error);
+        }
+      }
+      
+      setSectionsContent(newContent);
+      setLoading(false);
     };
+    
+    loadAllSections();
+  }, [open, builderSections]);
+  
+  // Get content for a specific section
+  const getSectionContent = (section: SectionOrder) => {
+    return sectionsContent[section.id] || null;
   };
   
   // Combine all section styles
@@ -67,7 +109,14 @@ export function PreviewModal({ open, onClose, onExport }: PreviewModalProps) {
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto border border-gray-700 rounded-md my-4 bg-white text-black">
-          {builderSections.length > 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center h-[300px]">
+              <div className="text-center">
+                <div className="h-12 w-12 border-4 border-gray-300 border-t-indigo-600 rounded-full animate-spin mb-4 mx-auto"></div>
+                <p className="text-gray-600">Loading preview...</p>
+              </div>
+            </div>
+          ) : builderSections.length > 0 ? (
             <div>
               {/* Embed styles */}
               <style dangerouslySetInnerHTML={{ __html: combinedStyles }} />
@@ -75,7 +124,21 @@ export function PreviewModal({ open, onClose, onExport }: PreviewModalProps) {
               {/* Render sections */}
               {builderSections.map((section) => {
                 const content = getSectionContent(section);
-                if (!content) return null;
+                if (!content) {
+                  return (
+                    <div key={section.id} className="preview-section relative">
+                      {/* Section label */}
+                      <div className="absolute top-0 left-0 bg-indigo-700 text-white px-2 py-1 text-xs">
+                        {formatSectionType(section.sectionTypeId)} - {getTemplateName(section.templateId || '')}
+                      </div>
+                      
+                      {/* Section content placeholder */}
+                      <div className="min-h-[150px] border-b border-gray-200 py-8 flex items-center justify-center">
+                        <p className="text-gray-500">Content not available for this section</p>
+                      </div>
+                    </div>
+                  );
+                }
                 
                 return (
                   <div key={section.id} className="preview-section relative">

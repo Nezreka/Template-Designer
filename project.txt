@@ -57,6 +57,15 @@ Step 5: ✅ COMPLETED
 
 Implement the Export functionality. When the user clicks the Export button, they should be able to download the combined HTML, CSS, and JS from their template as a complete HTML file. The export should include all sections in the proper order.
 
-Step 6:
+Step 6: ✅ COMPLETED
 
 Implement the "Add New Template" functionality. When clicking on the "Add New Template" button in the navbar dropdown, a modal should open allowing users to create a new template by selecting section types and providing HTML, CSS, and JS content for each section.
+
+Step 7: ✅ COMPLETED
+
+Connect the database to the template builder functionality. When a section is dragged into the builder, show database templates in the selection modal. Update the code view and preview functionality to work with database templates.
+
+Step 8:
+
+Implement the "Edit Template" functionality. When clicking on the "Edit Template" button in the navbar dropdown, a modal should open with a list of existing templates. The user should be able to select a template to edit its HTML, CSS, and JS contents for each section.
+

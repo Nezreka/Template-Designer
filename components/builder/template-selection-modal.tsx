@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { getTemplatesForSectionType } from './template-data';
+import { fetchTemplatesForSectionType } from '../../lib/template-api';
 import { Template } from './types';
+// Keep the mock data as a fallback
+import { getTemplatesForSectionType } from './template-data';
 import {
   Dialog,
   DialogContent,
@@ -31,9 +33,29 @@ export function TemplateSelectionModal({
   // Load available templates for this section type
   useEffect(() => {
     if (open && sectionType) {
-      const availableTemplates = getTemplatesForSectionType(sectionType);
-      setTemplates(availableTemplates);
-
+      const loadTemplates = async () => {
+        try {
+          // First try to fetch from API
+          const dbTemplates = await fetchTemplatesForSectionType(sectionType);
+          
+          if (dbTemplates.length > 0) {
+            setTemplates(dbTemplates);
+          } else {
+            // Fall back to mock data if no templates in DB
+            console.log('No templates found in database, using mock data');
+            const mockTemplates = getTemplatesForSectionType(sectionType);
+            setTemplates(mockTemplates);
+          }
+        } catch (error) {
+          console.error('Error loading templates:', error);
+          // Fall back to mock data on error
+          const mockTemplates = getTemplatesForSectionType(sectionType);
+          setTemplates(mockTemplates);
+        }
+      };
+      
+      loadTemplates();
+      
       // Reset selection when modal opens
       setSelectedTemplate(null);
       setSearchTerm('');

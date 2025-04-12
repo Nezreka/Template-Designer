@@ -23,7 +23,11 @@ export function ExportModal({ open, onClose }: ExportModalProps) {
   
   // Download the generated content
   const handleExport = () => {
-    const content = generateExport(exportFormat);
+    // Extract the base name without extension
+    const title = fileName.replace(/\.html$/, '');
+    
+    // Generate the content with the title option
+    const content = generateExport(exportFormat, { title });
     
     if (!content.html) {
       alert('No sections to export.');
@@ -32,7 +36,7 @@ export function ExportModal({ open, onClose }: ExportModalProps) {
     
     // For combined format, download single HTML file
     if (exportFormat === 'combined') {
-      downloadFile(content.html, `${fileName}.html`, 'text/html');
+      downloadFile(content.html, `${fileName}${fileName.endsWith('.html') ? '' : '.html'}`, 'text/html');
       
       // Close the modal after download starts
       onClose();
@@ -44,7 +48,7 @@ export function ExportModal({ open, onClose }: ExportModalProps) {
     // In a real implementation, you might want to use JSZip or similar
     
     // Download HTML file
-    downloadFile(content.html, `${fileName}.html`, 'text/html');
+    downloadFile(content.html, `${fileName}${fileName.endsWith('.html') ? '' : '.html'}`, 'text/html');
     
     // Download CSS file if it exists
     if (content.css) {

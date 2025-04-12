@@ -24,7 +24,10 @@ type BuilderContextType = {
   // Get available sections (derived from builder sections)
   getAvailableSections: () => SectionType[];
   // Generate HTML export
-  generateExport: (format?: 'combined' | 'separate') => { html: string, css?: string, js?: string };
+  generateExport: (
+    format?: 'combined' | 'separate', 
+    options?: { title?: string }
+  ) => { html: string, css?: string, js?: string };
 };
 
 // All possible section types
@@ -149,10 +152,18 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
   };
 
   // Generate HTML export for the entire template
-  const generateExport = (format: 'combined' | 'separate' = 'combined'): { html: string, css?: string, js?: string } => {
+  const generateExport = (
+    format: 'combined' | 'separate' = 'combined',
+    options?: { 
+      title?: string 
+    }
+  ): { html: string, css?: string, js?: string } => {
     if (builderSections.length === 0) {
       return { html: '' };
     }
+    
+    // Set a default title if not provided
+    const title = options?.title || 'Generated Template';
     
     // Collect all HTML, CSS, and JS from selected sections
     const sectionsHtml: string[] = [];
@@ -170,20 +181,6 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
       }
     });
     
-    // Base styles to include
-    const baseStyles = `/* Reset and base styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  line-height: 1.6;
-  color: #333;
-}`;
-    
     // If combined format, return a single HTML file with embedded CSS and JS
     if (format === 'combined') {
       return {
@@ -192,10 +189,8 @@ body {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Generated Template</title>
+  <title>${title}</title>
   <style>
-    ${baseStyles}
-    
     /* Combined template styles */
     ${sectionsCSS.join('\n\n')}
   </style>
@@ -219,7 +214,7 @@ body {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Generated Template</title>
+  <title>${title}</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -230,9 +225,7 @@ body {
 </body>
 </html>`;
 
-    const css = `${baseStyles}
-
-/* Combined template styles */
+    const css = `/* Combined template styles */
 ${sectionsCSS.join('\n\n')}`;
 
     const js = `// Combined template scripts

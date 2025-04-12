@@ -49,6 +49,14 @@ Step 3: ✅ COMPLETED
 
 Implement template selection modal. When a section is dragged to the main area, a modal should open that forces the user to select a template to pull this section from. After selecting a template, the section should display which template it's from.
 
-Step 4:
+Step 4: ✅ COMPLETED
 
 Add preview functionality. When the user clicks the Preview button, it should show a modal with a preview of the template they're building, including all the sections in the order they've arranged them.
+
+Step 5: ✅ COMPLETED
+
+Implement the Export functionality. When the user clicks the Export button, they should be able to download the combined HTML, CSS, and JS from their template as a complete HTML file. The export should include all sections in the proper order.
+
+Step 6:
+
+Implement the "Add New Template" functionality. When clicking on the "Add New Template" button in the navbar dropdown, a modal should open allowing users to create a new template by selecting section types and providing HTML, CSS, and JS content for each section.

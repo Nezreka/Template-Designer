@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
 import { SectionType, SectionOrder } from './types';
+import { getTemplateSection } from './template-data';
 
 type BuilderContextType = {
   // All section types
@@ -22,6 +23,8 @@ type BuilderContextType = {
   getTemplateName: (templateId: string) => string;
   // Get available sections (derived from builder sections)
   getAvailableSections: () => SectionType[];
+  // Generate HTML export
+  generateExport: (format?: 'combined' | 'separate') => { html: string, css?: string, js?: string };
 };
 
 // All possible section types
@@ -145,6 +148,99 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
     return templateNames[templateId] || 'Unknown Template';
   };
 
+  // Generate HTML export for the entire template
+  const generateExport = (format: 'combined' | 'separate' = 'combined'): { html: string, css?: string, js?: string } => {
+    if (builderSections.length === 0) {
+      return { html: '' };
+    }
+    
+    // Collect all HTML, CSS, and JS from selected sections
+    const sectionsHtml: string[] = [];
+    const sectionsCSS: string[] = [];
+    const sectionsJS: string[] = [];
+    
+    builderSections.forEach(section => {
+      if (section.templateId) {
+        const templateSection = getTemplateSection(section.templateId, section.sectionTypeId);
+        if (templateSection) {
+          sectionsHtml.push(templateSection.html);
+          sectionsCSS.push(templateSection.css);
+          sectionsJS.push(templateSection.js);
+        }
+      }
+    });
+    
+    // Base styles to include
+    const baseStyles = `/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.6;
+  color: #333;
+}`;
+    
+    // If combined format, return a single HTML file with embedded CSS and JS
+    if (format === 'combined') {
+      return {
+        html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generated Template</title>
+  <style>
+    ${baseStyles}
+    
+    /* Combined template styles */
+    ${sectionsCSS.join('\n\n')}
+  </style>
+</head>
+<body>
+  <!-- Template sections -->
+  ${sectionsHtml.join('\n\n')}
+  
+  <!-- Combined template scripts -->
+  <script>
+    ${sectionsJS.join('\n\n')}
+  </script>
+</body>
+</html>`
+      };
+    }
+    
+    // If separate format, return HTML with links to CSS and JS files
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generated Template</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Template sections -->
+  ${sectionsHtml.join('\n\n')}
+  
+  <script src="scripts.js"></script>
+</body>
+</html>`;
+
+    const css = `${baseStyles}
+
+/* Combined template styles */
+${sectionsCSS.join('\n\n')}`;
+
+    const js = `// Combined template scripts
+${sectionsJS.join('\n\n')}`;
+
+    return { html, css, js };
+  };
+
   return (
     <BuilderContext.Provider
       value={{
@@ -158,6 +254,7 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
         clearPendingSection,
         getTemplateName,
         getAvailableSections,
+        generateExport,
       }}
     >
       {children}

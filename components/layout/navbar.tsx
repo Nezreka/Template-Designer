@@ -6,7 +6,7 @@ export function Navbar() {
     <header className="bg-gray-900/90 backdrop-blur-lg border-b border-gray-700 sticky top-0 z-50">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-6">
-          <h1 className="text-xl font-semibold">Template Builder</h1>
+          <h1 className="text-xl font-semibold">Rogue Design</h1>
         </div>
         
         <div className="relative group">

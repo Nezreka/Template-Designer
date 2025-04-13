@@ -260,7 +260,10 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
       .filter(section => section.templateId && !['classic', 'modern', 'luxury'].includes(section.templateId))
       .map(section => section.templateId!)
       .filter((id, index, array) => array.indexOf(id) === index); // Remove duplicates
-      
+    
+    // Map to store unique global JS scripts
+    const globalJsMap = new Map<string, { content: string, size: number, source: string }>();
+    
     // Fetch global CSS and JS for all templates concurrently
     await Promise.all(templateIds.map(async (templateId) => {
       try {
@@ -269,13 +272,36 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
         
         const templateData = await response.json();
         
-        // Add global CSS and JS to their respective arrays
+        // Add global CSS to the array
         if (templateData.globalCss) {
           globalCSS.push(`/* Global CSS from template: ${templateData.name} */\n${templateData.globalCss}`);
         }
         
+        // Handle global JS - check for duplicates or similar scripts
         if (templateData.globalJs) {
-          globalJS.push(`/* Global JS from template: ${templateData.name} */\n${templateData.globalJs}`);
+          const jsContent = templateData.globalJs.trim();
+          const scriptSize = jsContent.length;
+          
+          // Check if we already have identical scripts
+          let isDuplicate = false;
+          
+          // Iterate through existing scripts to find duplicates
+          for (const [key, value] of globalJsMap.entries()) {
+            if (key === jsContent) {
+              // Exact duplicate found, no need to add it again
+              isDuplicate = true;
+              break;
+            }
+          }
+          
+          if (!isDuplicate) {
+            // Not a duplicate, add to our map
+            globalJsMap.set(jsContent, { 
+              content: jsContent, 
+              size: scriptSize,
+              source: templateData.name
+            });
+          }
         }
         
         // Also cache the template name
@@ -287,6 +313,15 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
         console.error(`Error fetching globals for template ${templateId}:`, error);
       }
     }));
+    
+    // Process the globalJsMap and add to the globalJS array
+    // Sort larger scripts first in case they are supersets of smaller scripts
+    const sortedScripts = Array.from(globalJsMap.values())
+      .sort((a, b) => b.size - a.size);
+    
+    for (const script of sortedScripts) {
+      globalJS.push(`/* Global JS from template: ${script.source} */\n${script.content}`);
+    }
     
     // Handle section content loading
     // We need to load each section's content sequentially using await

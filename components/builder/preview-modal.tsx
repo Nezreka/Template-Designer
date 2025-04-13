@@ -52,6 +52,9 @@ export function PreviewModal({ open, onClose, onExport }: PreviewModalProps) {
         .map(section => section.templateId!)
         .filter((id, index, array) => array.indexOf(id) === index); // Remove duplicates
       
+      // Map to store unique global JS scripts
+      const globalJsMap = new Map<string, { content: string, size: number, source: string }>();
+      
       // Fetch global CSS and JS for all templates concurrently
       await Promise.all(templateIds.map(async (templateId) => {
         try {
@@ -60,18 +63,50 @@ export function PreviewModal({ open, onClose, onExport }: PreviewModalProps) {
           
           const templateData = await response.json();
           
-          // Add global CSS and JS with template name comments
+          // Add global CSS with template name comments
           if (templateData.globalCss) {
             templateGlobalCss.push(`/* Global CSS from template: ${templateData.name} */\n${templateData.globalCss}`);
           }
           
+          // Handle global JS - check for duplicates or similar scripts
           if (templateData.globalJs) {
-            templateGlobalJs.push(`/* Global JS from template: ${templateData.name} */\n${templateData.globalJs}`);
+            const jsContent = templateData.globalJs.trim();
+            const scriptSize = jsContent.length;
+            
+            // Check if we already have identical scripts
+            let isDuplicate = false;
+            
+            // Iterate through existing scripts to find duplicates
+            for (const [key, value] of globalJsMap.entries()) {
+              if (key === jsContent) {
+                // Exact duplicate found, no need to add it again
+                isDuplicate = true;
+                break;
+              }
+            }
+            
+            if (!isDuplicate) {
+              // Not a duplicate, add to our map
+              globalJsMap.set(jsContent, { 
+                content: jsContent, 
+                size: scriptSize,
+                source: templateData.name
+              });
+            }
           }
         } catch (error) {
           console.error(`Error fetching globals for template ${templateId}:`, error);
         }
       }));
+      
+      // Process the globalJsMap and add to the templateGlobalJs array
+      // Sort larger scripts first in case they are supersets of smaller scripts
+      const sortedScripts = Array.from(globalJsMap.values())
+        .sort((a, b) => b.size - a.size);
+      
+      for (const script of sortedScripts) {
+        templateGlobalJs.push(`/* Global JS from template: ${script.source} */\n${script.content}`);
+      }
       
       // Now load individual section content
       for (const section of builderSections) {

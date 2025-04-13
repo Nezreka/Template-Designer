@@ -73,6 +73,10 @@ Step 9: ✅ COMPLETED
 
 Implement the "Duplicate Template" functionality. Add a "Duplicate" button next to the "Edit" and "Delete" buttons in the template list modal. When clicked, it should create a copy of the selected template with all its sections, but with "(Copy)" appended to the name. This provides users with an easier way to create variations of existing templates without starting from scratch.
 
-Step 10:
+Step 10: ✅ COMPLETED
 
-Implement mobile view toggle for the preview functionality. Add a button in the preview modal that allows users to switch between desktop and mobile views to see how their template will look on different screen sizes.
+Implement mobile view toggle for the preview functionality. Add a button in the preview modal that allows users to switch between desktop and mobile views to see how their template will look on different screen sizes. Also added tablet view for medium-sized screens.
+
+Step 11:
+
+Implement the "Upload Template" functionality. When clicking on the "Upload Template" button in the Add New Template modal, a new modal should open allowing users to upload HTML, CSS, and JS files. The system should intelligently parse these files to extract individual sections and their corresponding styles.

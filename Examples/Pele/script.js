@@ -221,6 +221,12 @@
    * - Supports WebP conversion
    * - Intelligently determines optimal image sizes
    */
+  /**
+   * Enhanced image optimization and lazy loading
+   * - Uses web workers when available
+   * - Supports WebP conversion
+   * - Intelligently determines optimal image sizes
+   */
   function setupLazyLoadAndFade() {
     if (!featureSupport.intersectionObserver) {
       console.warn(

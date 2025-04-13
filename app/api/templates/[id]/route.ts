@@ -4,10 +4,11 @@ import { prisma } from '@/lib/db';
 // GET /api/templates/[id] - Get a single template with all its sections
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const id = params.id;
+    // Await the params object
+    const { id } = await context.params;
     
     const template = await prisma.template.findUnique({
       where: { id },
@@ -32,11 +33,12 @@ export async function GET(
 // DELETE /api/templates/[id] - Delete a template
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const id = params.id;
-
+    // Await the params object
+    const { id } = await context.params;
+    
     // Check if the template exists
     const template = await prisma.template.findUnique({
       where: { id }
@@ -61,10 +63,11 @@ export async function DELETE(
 // PATCH /api/templates/[id] - Update a template
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const id = params.id;
+    // Await the params object
+    const { id } = await context.params;
     const body = await request.json();
     
     // Check if the template exists

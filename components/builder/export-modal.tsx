@@ -21,53 +21,67 @@ export function ExportModal({ open, onClose }: ExportModalProps) {
   const [fileName, setFileName] = useState('my-template');
   const [exportFormat, setExportFormat] = useState<'combined' | 'separate'>('combined');
   
-  // Download the generated content
-  const handleExport = () => {
-    // Extract the base name without extension
-    const title = fileName.replace(/\.html$/, '');
-    
-    // Generate the content with the title option
-    const content = generateExport(exportFormat, { title });
-    
-    if (!content.html) {
-      alert('No sections to export.');
-      return;
-    }
-    
-    // For combined format, download single HTML file
-    if (exportFormat === 'combined') {
+  // State for tracking export process
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  // Download the generated content (now async)
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      setExportError(null);
+      
+      // Extract the base name without extension
+      const title = fileName.replace(/\.html$/, '');
+      
+      // Generate the content with the title option (now await)
+      const content = await generateExport(exportFormat, { title });
+      
+      if (!content.html) {
+        setExportError('No sections to export.');
+        setIsExporting(false);
+        return;
+      }
+      
+      // For combined format, download single HTML file
+      if (exportFormat === 'combined') {
+        downloadFile(content.html, `${fileName}${fileName.endsWith('.html') ? '' : '.html'}`, 'text/html');
+        
+        // Close the modal after download starts
+        setTimeout(() => onClose(), 500);
+        return;
+      }
+      
+      // For separate format, create a zip file with multiple files
+      // Since we don't have a zip library here, we'll do individual downloads
+      
+      // Download HTML file
       downloadFile(content.html, `${fileName}${fileName.endsWith('.html') ? '' : '.html'}`, 'text/html');
       
-      // Close the modal after download starts
-      onClose();
-      return;
-    }
-    
-    // For separate format, create a zip file with multiple files
-    // Since we don't have a zip library here, we'll do individual downloads
-    // In a real implementation, you might want to use JSZip or similar
-    
-    // Download HTML file
-    downloadFile(content.html, `${fileName}${fileName.endsWith('.html') ? '' : '.html'}`, 'text/html');
-    
-    // Download CSS file if it exists
-    if (content.css) {
+      // Download CSS file if it exists
+      if (content.css) {
+        setTimeout(() => {
+          downloadFile(content.css!, `styles.css`, 'text/css');
+        }, 500);
+      }
+      
+      // Download JS file if it exists
+      if (content.js) {
+        setTimeout(() => {
+          downloadFile(content.js!, `scripts.js`, 'text/javascript');
+        }, 1000);
+      }
+      
+      // Close the modal after all downloads start
       setTimeout(() => {
-        downloadFile(content.css!, `styles.css`, 'text/css');
-      }, 500);
+        onClose();
+      }, 1500);
+    } catch (error) {
+      console.error('Export error:', error);
+      setExportError('Failed to export template. Please try again.');
+    } finally {
+      setIsExporting(false);
     }
-    
-    // Download JS file if it exists
-    if (content.js) {
-      setTimeout(() => {
-        downloadFile(content.js!, `scripts.js`, 'text/javascript');
-      }, 1000);
-    }
-    
-    // Close the modal after all downloads start
-    setTimeout(() => {
-      onClose();
-    }, 1500);
   };
   
   // Helper function to download a file
@@ -172,18 +186,34 @@ export function ExportModal({ open, onClose }: ExportModalProps) {
           </div>
         </div>
 
+        {exportError && (
+          <div className="text-red-400 text-sm mb-4 pt-2 text-center">
+            {exportError}
+          </div>
+        )}
+
         <DialogFooter>
           <Button 
             onClick={onClose}
+            disabled={isExporting}
             className="bg-gray-900 hover:bg-gray-800 backdrop-blur-md border border-gray-700 text-indigo-300 font-medium shadow-md"
           >
             Cancel
           </Button>
           <Button 
             onClick={handleExport}
+            disabled={isExporting}
             className="bg-gray-900 hover:bg-gray-800 backdrop-blur-md border border-gray-700 text-indigo-300 font-medium shadow-md"
           >
-            Download Design
+            {isExporting ? (
+              <div className="flex items-center">
+                <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Exporting...
+              </div>
+            ) : "Download Design"}
           </Button>
         </DialogFooter>
       </DialogContent>

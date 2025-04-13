@@ -29,7 +29,7 @@ type BuilderContextType = {
   generateExport: (
     format?: 'combined' | 'separate', 
     options?: { title?: string }
-  ) => { html: string, css?: string, js?: string };
+  ) => Promise<{ html: string, css?: string, js?: string }>;
 };
 
 // All possible section types
@@ -231,12 +231,12 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
   };
 
   // Generate HTML export for the entire template
-  const generateExport = (
+  const generateExport = async (
     format: 'combined' | 'separate' = 'combined',
     options?: { 
       title?: string 
     }
-  ): { html: string, css?: string, js?: string } => {
+  ): Promise<{ html: string, css?: string, js?: string }> => {
     if (builderSections.length === 0) {
       return { html: '' };
     }
@@ -248,67 +248,155 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
     const sectionsHtml: string[] = [];
     const sectionsCSS: string[] = [];
     const sectionsJS: string[] = [];
+    const globalCSS: string[] = [];
+    const globalJS: string[] = [];
     
-    // Handle both database and mock templates
-    builderSections.forEach(section => {
-      if (section.templateId) {
-        // For built-in templates, use the mock data
-        if (['classic', 'modern', 'luxury'].includes(section.templateId)) {
-          const templateSection = getTemplateSection(section.templateId, section.sectionTypeId);
-          if (templateSection) {
-            sectionsHtml.push(templateSection.html);
-            sectionsCSS.push(templateSection.css);
-            sectionsJS.push(templateSection.js);
-          }
-        } else {
-          // For database templates, check the cache first
-          if (dbSectionsCache[section.templateId] && 
-              dbSectionsCache[section.templateId][section.sectionTypeId]) {
-            
-            const cachedSection = dbSectionsCache[section.templateId][section.sectionTypeId];
-            sectionsHtml.push(cachedSection.html);
-            sectionsCSS.push(cachedSection.css);
-            sectionsJS.push(cachedSection.js);
-            
+    // Set to keep track of templates we've already processed for globals
+    const processedTemplateIds = new Set<string>();
+    
+    // First, fetch all globals from all templates used in the composition
+    // This ensures we have all the global CSS and JS before generating the HTML
+    const templateIds = builderSections
+      .filter(section => section.templateId && !['classic', 'modern', 'luxury'].includes(section.templateId))
+      .map(section => section.templateId!)
+      .filter((id, index, array) => array.indexOf(id) === index); // Remove duplicates
+      
+    // Fetch global CSS and JS for all templates concurrently
+    await Promise.all(templateIds.map(async (templateId) => {
+      try {
+        const response = await fetch(`/api/templates/${templateId}`);
+        if (!response.ok) return;
+        
+        const templateData = await response.json();
+        
+        // Add global CSS and JS to their respective arrays
+        if (templateData.globalCss) {
+          globalCSS.push(`/* Global CSS from template: ${templateData.name} */\n${templateData.globalCss}`);
+        }
+        
+        if (templateData.globalJs) {
+          globalJS.push(`/* Global JS from template: ${templateData.name} */\n${templateData.globalJs}`);
+        }
+        
+        // Also cache the template name
+        dbTemplateNames[templateId] = templateData.name;
+        
+        // Mark this template as processed for globals
+        processedTemplateIds.add(templateId);
+      } catch (error) {
+        console.error(`Error fetching globals for template ${templateId}:`, error);
+      }
+    }));
+    
+    // Handle section content loading
+    // We need to load each section's content sequentially using await
+    // to ensure it's properly loaded before generating HTML
+    const loadSectionContent = async () => {
+      for (const section of builderSections) {
+        if (!section.templateId) continue;
+        
+        try {
+          // For built-in templates, use the mock data
+          if (['classic', 'modern', 'luxury'].includes(section.templateId)) {
+            const templateSection = getTemplateSection(section.templateId, section.sectionTypeId);
+            if (templateSection) {
+              sectionsHtml.push(templateSection.html);
+              sectionsCSS.push(templateSection.css);
+              sectionsJS.push(templateSection.js);
+            } else {
+              // Placeholder for missing mock section
+              sectionsHtml.push(`<section class="${section.sectionTypeId}">Mock section not found</section>`);
+              sectionsCSS.push(`.${section.sectionTypeId} { padding: 20px; text-align: center; }`);
+              sectionsJS.push('');
+            }
           } else {
-            // No cached data, include a placeholder
-            sectionsHtml.push(`<section class="${section.sectionTypeId}"><p>Loading section from database...</p></section>`);
-            sectionsCSS.push(`.${section.sectionTypeId} { padding: 20px; text-align: center; }`);
-            sectionsJS.push('');
+            // For database templates, fetch directly for exports
+            let sectionContent = null;
             
-            // Kick off the async fetch for next time
-            fetch(`/api/templates/${section.templateId}`)
-              .then(response => response.json())
-              .then(template => {
+            // Check cache first
+            if (dbSectionsCache[section.templateId] && 
+                dbSectionsCache[section.templateId][section.sectionTypeId]) {
+              sectionContent = dbSectionsCache[section.templateId][section.sectionTypeId];
+            } else {
+              // Fetch from API if not in cache
+              const response = await fetch(`/api/templates/${section.templateId}`);
+              if (response.ok) {
+                const template = await response.json();
                 const dbSection = template.sections.find(s => s.sectionTypeId === section.sectionTypeId);
+                
                 if (dbSection) {
-                  // Cache the section data for future use
-                  if (!dbSectionsCache[section.templateId]) {
-                    dbSectionsCache[section.templateId] = {};
-                  }
-                  
-                  dbSectionsCache[section.templateId][section.sectionTypeId] = {
+                  sectionContent = {
                     html: dbSection.html,
                     css: dbSection.css,
                     js: dbSection.js || ''
                   };
                   
-                  console.log(`Cached section ${section.sectionTypeId} from template ${template.name}`);
+                  // Cache for future use
+                  if (!dbSectionsCache[section.templateId]) {
+                    dbSectionsCache[section.templateId] = {};
+                  }
                   
-                  // Also cache the template name while we're at it
-                  dbTemplateNames[section.templateId] = template.name;
+                  dbSectionsCache[section.templateId][section.sectionTypeId] = sectionContent;
                 }
-              })
-              .catch(error => {
-                console.error('Error fetching template section:', error);
-              });
+              }
+            }
+            
+            // Add content to output arrays
+            if (sectionContent) {
+              sectionsHtml.push(sectionContent.html);
+              sectionsCSS.push(sectionContent.css);
+              sectionsJS.push(sectionContent.js);
+            } else {
+              // Fallback if we couldn't get the content
+              sectionsHtml.push(`<section class="${section.sectionTypeId}">Content not available</section>`);
+              sectionsCSS.push(`.${section.sectionTypeId} { padding: 20px; text-align: center; }`);
+              sectionsJS.push('');
+            }
           }
+        } catch (error) {
+          console.error(`Error loading section ${section.sectionTypeId}:`, error);
+          // Fallback
+          sectionsHtml.push(`<section class="${section.sectionTypeId}">Error loading content</section>`);
+          sectionsCSS.push(`.${section.sectionTypeId} { padding: 20px; text-align: center; color: red; }`);
+          sectionsJS.push('');
         }
       }
-    });
+    };
+    
+    // Execute content loading before proceeding
+    await loadSectionContent();
     
     // If combined format, return a single HTML file with embedded CSS and JS
     if (format === 'combined') {
+      // Convert title to camelCase for use as template container ID
+      const camelCaseTitle = title
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(' ')
+        .map((word, index) => {
+          const lowerWord = word.toLowerCase();
+          return index === 0 ? lowerWord : lowerWord.charAt(0).toUpperCase() + lowerWord.slice(1);
+        })
+        .join('');
+
+      // Wrap each section's HTML in its template container
+      const wrappedSectionsHtml = builderSections.map((section, index) => {
+        const templateName = getTemplateName(section.templateId || '');
+        const templateIdCamelCase = templateName
+          .replace(/\s+/g, ' ')
+          .trim()
+          .split(' ')
+          .map((word, index) => {
+            const lowerWord = word.toLowerCase();
+            return index === 0 ? lowerWord : lowerWord.charAt(0).toUpperCase() + lowerWord.slice(1);
+          })
+          .join('');
+
+        return `<div id="${templateIdCamelCase}">
+  ${sectionsHtml[index] || `<div class="${section.sectionTypeId}">Section content not available</div>`}
+</div>`;
+      });
+
       return {
         html: `<!DOCTYPE html>
 <html lang="en">
@@ -317,16 +405,30 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
   <style>
+    /* Import Google Fonts */
+    @import url("https://fonts.googleapis.com/css2?family=Playfair+Display&family=Raleway:wght@300;400;600&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Jost:ital,wght@0,100..900;1,100..900&family=Manrope:wght@200..800&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap");
+    
+    /* Global styles */
+    ${globalCSS.join('\n\n')}
+
     /* Combined template styles */
     ${sectionsCSS.join('\n\n')}
   </style>
 </head>
 <body>
-  <!-- Template sections -->
-  ${sectionsHtml.join('\n\n')}
+  <!-- Template sections wrapped in required containers -->
+  <main id="cherieYoung" class="" style="opacity: 0;">
+    ${wrappedSectionsHtml.join('\n\n')}
+  </main>
   
   <!-- Combined template scripts -->
   <script>
+    /* Global JavaScript */
+    ${globalJS.join('\n\n')}
+
+    /* Section JavaScript */
     ${sectionsJS.join('\n\n')}
   </script>
 </body>
@@ -335,6 +437,24 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
     }
     
     // If separate format, return HTML with links to CSS and JS files
+    // Create wrapped sections with template IDs (same as combined format)
+    const wrappedSectionsHtml = builderSections.map((section, index) => {
+      const templateName = getTemplateName(section.templateId || '');
+      const templateIdCamelCase = templateName
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(' ')
+        .map((word, index) => {
+          const lowerWord = word.toLowerCase();
+          return index === 0 ? lowerWord : lowerWord.charAt(0).toUpperCase() + lowerWord.slice(1);
+        })
+        .join('');
+
+      return `<div id="${templateIdCamelCase}">
+  ${sectionsHtml[index] || `<div class="${section.sectionTypeId}">Section content not available</div>`}
+</div>`;
+    });
+
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -344,17 +464,30 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Template sections -->
-  ${sectionsHtml.join('\n\n')}
+  <!-- Template sections wrapped in required containers -->
+  <main id="cherieYoung" class="" style="opacity: 0;">
+    ${wrappedSectionsHtml.join('\n\n')}
+  </main>
   
   <script src="scripts.js"></script>
 </body>
 </html>`;
 
-    const css = `/* Combined template styles */
+    const css = `/* Import Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display&family=Raleway:wght@300;400;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Jost:ital,wght@0,100..900;1,100..900&family=Manrope:wght@200..800&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap");
+
+/* Global styles */
+${globalCSS.join('\n\n')}
+
+/* Combined template styles */
 ${sectionsCSS.join('\n\n')}`;
 
-    const js = `// Combined template scripts
+    const js = `// Global JavaScript
+${globalJS.join('\n\n')}
+
+// Combined template scripts
 ${sectionsJS.join('\n\n')}`;
 
     return { html, css, js };

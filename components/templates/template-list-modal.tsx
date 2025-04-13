@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
+import TemplateEditModal from './template-edit-modal';
 
 type Template = {
   id: string;
@@ -23,6 +24,8 @@ export default function TemplateListModal({ open, onClose }: TemplateListModalPr
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editTemplateId, setEditTemplateId] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Fetch templates when the modal opens
   useEffect(() => {
@@ -164,8 +167,8 @@ export default function TemplateListModal({ open, onClose }: TemplateListModalPr
                       <Button
                         className="bg-gray-900 hover:bg-gray-800 backdrop-blur-md border border-gray-700 text-indigo-300 font-medium shadow-md text-sm py-1 h-8"
                         onClick={() => {
-                          // We'll implement edit functionality in the future
-                          alert('Edit functionality will be available in the next phase');
+                          setEditTemplateId(template.id);
+                          setShowEditModal(true);
                         }}
                       >
                         Edit
@@ -193,6 +196,18 @@ export default function TemplateListModal({ open, onClose }: TemplateListModalPr
           </Button>
         </div>
       </DialogContent>
+
+      {/* Template edit modal */}
+      <TemplateEditModal
+        open={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditTemplateId(null);
+          // Refresh the templates list
+          fetchTemplates();
+        }}
+        templateId={editTemplateId}
+      />
     </Dialog>
   );
 }

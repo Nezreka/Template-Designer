@@ -102,6 +102,36 @@ export async function PATCH(
         globalJs: body.globalJs !== undefined ? body.globalJs : undefined,
       }
     });
+    
+    // Update sections if provided
+    if (body.sections && Array.isArray(body.sections)) {
+      // Handle section updates using a transaction
+      await prisma.$transaction(
+        body.sections.map(section => 
+          prisma.section.update({
+            where: { id: section.id },
+            data: {
+              html: section.html,
+              css: section.css,
+              js: section.js,
+              order: section.order
+            }
+          })
+        )
+      );
+      
+      // Fetch the updated template with sections
+      const templateWithSections = await prisma.template.findUnique({
+        where: { id },
+        include: {
+          sections: {
+            orderBy: { order: 'asc' }
+          }
+        }
+      });
+      
+      return NextResponse.json(templateWithSections);
+    }
 
     return NextResponse.json(updatedTemplate);
   } catch (error) {

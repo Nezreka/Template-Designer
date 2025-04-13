@@ -79,4 +79,3 @@ Implement mobile view toggle for the preview functionality. Add a button in the 
 
 Step 11:
 
-Implement the "Upload Template" functionality. When clicking on the "Upload Template" button in the Add New Template modal, a new modal should open allowing users to upload HTML, CSS, and JS files. The system should intelligently parse these files to extract individual sections and their corresponding styles.

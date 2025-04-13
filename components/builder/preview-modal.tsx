@@ -52,8 +52,9 @@ export function PreviewModal({ open, onClose, onExport }: PreviewModalProps) {
         .map(section => section.templateId!)
         .filter((id, index, array) => array.indexOf(id) === index); // Remove duplicates
       
-      // Map to store unique global JS scripts
+      // Maps to store unique global JS and CSS
       const globalJsMap = new Map<string, { content: string, size: number, source: string }>();
+      const globalCssMap = new Map<string, { content: string, size: number, source: string }>();
       
       // Fetch global CSS and JS for all templates concurrently
       await Promise.all(templateIds.map(async (templateId) => {
@@ -63,9 +64,31 @@ export function PreviewModal({ open, onClose, onExport }: PreviewModalProps) {
           
           const templateData = await response.json();
           
-          // Add global CSS with template name comments
+          // Handle global CSS - check for duplicates
           if (templateData.globalCss) {
-            templateGlobalCss.push(`/* Global CSS from template: ${templateData.name} */\n${templateData.globalCss}`);
+            const cssContent = templateData.globalCss.trim();
+            const cssSize = cssContent.length;
+            
+            // Check if we already have identical CSS
+            let isDuplicateCss = false;
+            
+            // Iterate through existing CSS to find duplicates
+            for (const [key, value] of globalCssMap.entries()) {
+              if (key === cssContent) {
+                // Exact duplicate found, no need to add it again
+                isDuplicateCss = true;
+                break;
+              }
+            }
+            
+            if (!isDuplicateCss) {
+              // Not a duplicate, add to our map
+              globalCssMap.set(cssContent, { 
+                content: cssContent, 
+                size: cssSize,
+                source: templateData.name
+              });
+            }
           }
           
           // Handle global JS - check for duplicates or similar scripts
@@ -98,6 +121,15 @@ export function PreviewModal({ open, onClose, onExport }: PreviewModalProps) {
           console.error(`Error fetching globals for template ${templateId}:`, error);
         }
       }));
+      
+      // Process the globalCssMap and add to the templateGlobalCss array
+      // Sort larger CSS first in case they are supersets of smaller ones
+      const sortedCss = Array.from(globalCssMap.values())
+        .sort((a, b) => b.size - a.size);
+      
+      for (const css of sortedCss) {
+        templateGlobalCss.push(`/* Global CSS from template: ${css.source} */\n${css.content}`);
+      }
       
       // Process the globalJsMap and add to the templateGlobalJs array
       // Sort larger scripts first in case they are supersets of smaller scripts

@@ -39,11 +39,13 @@ const sectionTypes: SectionType[] = [
   { id: 'featured-areas', name: 'Featured Areas' },
   { id: 'featured-lifestyles', name: 'Featured Lifestyles' },
   { id: 'featured-listings', name: 'Featured Listings' },
+  { id: 'sold-listings', name: 'Sold Listings' },
   { id: 'stats', name: 'Stats' },
   { id: 'homeworth', name: 'Homeworth' },
   { id: 'buyer-seller', name: 'Buyer / Seller' },
   { id: 'buyer', name: 'Buyer' },
   { id: 'seller', name: 'Seller' },
+  { id: 'social', name: 'Social' },
   { id: 'contact', name: 'Contact' },
 ];
 

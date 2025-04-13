@@ -33,6 +33,20 @@ export const templates: Template[] = [
         html: '<div class="stats">Classic Stats Section</div>',
         css: '.stats { /* Classic stats styles */ }',
         js: '// Classic stats JS'
+      },
+      {
+        id: 'classic-sold-listings',
+        sectionType: 'sold-listings',
+        html: '<div class="sold-listings">Classic Sold Listings Section</div>',
+        css: '.sold-listings { /* Classic sold listings styles */ }',
+        js: '// Classic sold listings JS'
+      },
+      {
+        id: 'classic-social',
+        sectionType: 'social',
+        html: '<div class="social">Classic Social Section</div>',
+        css: '.social { /* Classic social styles */ }',
+        js: '// Classic social JS'
       }
     ]
   },
@@ -69,6 +83,20 @@ export const templates: Template[] = [
         js: '// Modern featured lifestyles JS'
       },
       {
+        id: 'modern-sold-listings',
+        sectionType: 'sold-listings',
+        html: '<div class="sold-listings">Modern Sold Listings Section</div>',
+        css: '.sold-listings { /* Modern sold listings styles */ }',
+        js: '// Modern sold listings JS'
+      },
+      {
+        id: 'modern-social',
+        sectionType: 'social',
+        html: '<div class="social">Modern Social Section</div>',
+        css: '.social { /* Modern social styles */ }',
+        js: '// Modern social JS'
+      },
+      {
         id: 'modern-contact',
         sectionType: 'contact',
         html: '<div class="contact">Modern Contact Section</div>',
@@ -101,6 +129,20 @@ export const templates: Template[] = [
         html: '<div class="featured-listings">Luxury Featured Listings Section</div>',
         css: '.featured-listings { /* Luxury featured listings styles */ }',
         js: '// Luxury featured listings JS'
+      },
+      {
+        id: 'luxury-sold-listings',
+        sectionType: 'sold-listings',
+        html: '<div class="sold-listings">Luxury Sold Listings Section</div>',
+        css: '.sold-listings { /* Luxury sold listings styles */ }',
+        js: '// Luxury sold listings JS'
+      },
+      {
+        id: 'luxury-social',
+        sectionType: 'social',
+        html: '<div class="social">Luxury Social Section</div>',
+        css: '.social { /* Luxury social styles */ }',
+        js: '// Luxury social JS'
       },
       {
         id: 'luxury-buyer-seller',

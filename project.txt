@@ -65,7 +65,14 @@ Step 7: ✅ COMPLETED
 
 Connect the database to the template builder functionality. When a section is dragged into the builder, show database templates in the selection modal. Update the code view and preview functionality to work with database templates.
 
-Step 8:
+Step 8: ✅ COMPLETED
 
 Implement the "Edit Template" functionality. When clicking on the "Edit Template" button in the navbar dropdown, a modal should open with a list of existing templates. The user should be able to select a template to edit its HTML, CSS, and JS contents for each section.
 
+Step 9: ✅ COMPLETED
+
+Implement the "Duplicate Template" functionality. Add a "Duplicate" button next to the "Edit" and "Delete" buttons in the template list modal. When clicked, it should create a copy of the selected template with all its sections, but with "(Copy)" appended to the name. This provides users with an easier way to create variations of existing templates without starting from scratch.
+
+Step 10:
+
+Implement mobile view toggle for the preview functionality. Add a button in the preview modal that allows users to switch between desktop and mobile views to see how their template will look on different screen sizes.

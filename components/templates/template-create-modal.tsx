@@ -83,6 +83,37 @@ export default function TemplateCreateModal({ open, onClose }: TemplateCreateMod
       setCurrentSectionIndex(currentSectionIndex - 1);
     }
   };
+  
+  // Handle section reordering
+  const handleSectionMove = (index: number, direction: 'up' | 'down') => {
+    // Can't move up if already at the top
+    if (direction === 'up' && index === 0) return;
+    // Can't move down if already at the bottom
+    if (direction === 'down' && index === selectedSections.length - 1) return;
+    
+    const newSections = [...selectedSections];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    // Swap the sections
+    [newSections[index], newSections[newIndex]] = [newSections[newIndex], newSections[index]];
+    
+    // Update the order property for each section
+    const reorderedSections = newSections.map((section, idx) => ({
+      ...section,
+      order: idx
+    }));
+    
+    setSelectedSections(reorderedSections);
+    
+    // Also update currentSectionIndex if we're in the code editing step
+    if (step === 'content') {
+      if (currentSectionIndex === index) {
+        setCurrentSectionIndex(newIndex);
+      } else if (currentSectionIndex === newIndex) {
+        setCurrentSectionIndex(index);
+      }
+    }
+  };
 
   // Handle section code updates
   const handleSectionUpdate = (index: number, field: 'html' | 'css' | 'js', value: string) => {
@@ -157,6 +188,7 @@ export default function TemplateCreateModal({ open, onClose }: TemplateCreateMod
             selectedSections={selectedSections}
             onSectionSelect={handleSectionSelect}
             onSectionRemove={handleSectionRemove}
+            onSectionMove={handleSectionMove}
             onNext={() => setStep('content')}
             templateName={templateName}
             onTemplateNameChange={setTemplateName}

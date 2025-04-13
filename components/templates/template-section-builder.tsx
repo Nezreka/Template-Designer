@@ -9,6 +9,7 @@ type TemplateSectionBuilderProps = {
   selectedSections: any[];
   onSectionSelect: (sectionTypeId: string) => void;
   onSectionRemove: (index: number) => void;
+  onSectionMove: (index: number, direction: 'up' | 'down') => void;
   onNext: () => void;
   templateName: string;
   onTemplateNameChange: (name: string) => void;
@@ -18,6 +19,7 @@ export default function TemplateSectionBuilder({
   selectedSections,
   onSectionSelect,
   onSectionRemove,
+  onSectionMove,
   onNext,
   templateName,
   onTemplateNameChange
@@ -76,7 +78,7 @@ export default function TemplateSectionBuilder({
         {/* Selected sections */}
         <div className="w-1/2 overflow-auto">
           <h3 className="text-lg font-medium mb-2">Selected Sections</h3>
-          <p className="text-sm text-gray-400 mb-4">Sections that will be included in your template (drag to reorder)</p>
+          <p className="text-sm text-gray-400 mb-4">Sections that will be included in your template (use arrows to reorder)</p>
           
           {selectedSections.length > 0 ? (
             <div className="space-y-2">
@@ -91,14 +93,42 @@ export default function TemplateSectionBuilder({
                       <span className="font-medium text-gray-200 mr-3">{index + 1}.</span>
                       <span className="font-medium">{sectionType?.name || section.sectionTypeId}</span>
                     </div>
-                    <button
-                      onClick={() => onSectionRemove(index)}
-                      className="p-1 rounded hover:bg-gray-700 text-gray-400 hover:text-red-400 transition-colors"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                    <div className="flex items-center space-x-1">
+                      {/* Move up button */}
+                      <button
+                        onClick={() => onSectionMove(index, 'up')}
+                        disabled={index === 0}
+                        className={`p-1 rounded ${index === 0 ? 'text-gray-600 cursor-not-allowed' : 'hover:bg-gray-700 text-gray-400 hover:text-indigo-400'} transition-colors`}
+                        title="Move up"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                      </button>
+                      
+                      {/* Move down button */}
+                      <button
+                        onClick={() => onSectionMove(index, 'down')}
+                        disabled={index === selectedSections.length - 1}
+                        className={`p-1 rounded ${index === selectedSections.length - 1 ? 'text-gray-600 cursor-not-allowed' : 'hover:bg-gray-700 text-gray-400 hover:text-indigo-400'} transition-colors`}
+                        title="Move down"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      
+                      {/* Remove button */}
+                      <button
+                        onClick={() => onSectionRemove(index)}
+                        className="p-1 rounded hover:bg-gray-700 text-gray-400 hover:text-red-400 transition-colors"
+                        title="Remove"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 );
               })}

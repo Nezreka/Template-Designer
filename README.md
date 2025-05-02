@@ -40,15 +40,6 @@ The project uses a modern Next.js app structure:
 - `/store` - State management
 - `/types` - TypeScript type definitions
 
-## Adding Media
-
-To add a demo video or GIF of your template builder in action:
-
-1. Create a screen recording of the template builder in use
-2. Convert it to GIF format (recommended) or MP4
-3. Place the file in the `/public` directory
-4. Reference it in markdown as shown above: `![Template Builder Demo](demo.gif)`
-
 ## Learn More
 
 To learn more about the technologies used:

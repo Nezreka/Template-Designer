@@ -1,4 +1,17 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Template Builder
+
+A powerful Next.js-based visual template builder that allows you to create, manage, and customize website templates with a drag-and-drop interface.
+
+![Template Builder Demo](demo.gif)
+
+## Features
+
+- 🎨 Visual drag-and-drop template builder
+- 📦 Pre-built section templates
+- 💅 Live preview with responsive design views
+- 🔄 Global CSS and JavaScript management
+- 📱 Mobile, tablet, and desktop previews
+- 🎯 Export templates as single or separate files
 
 ## Getting Started
 
@@ -16,21 +29,36 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The project uses a modern Next.js app structure:
+
+- `/app` - Next.js app router and pages
+- `/components` - React components organized by feature
+- `/lib` - Utility functions and API helpers
+- `/public` - Static assets
+- `/store` - State management
+- `/types` - TypeScript type definitions
+
+## Adding Media
+
+To add a demo video or GIF of your template builder in action:
+
+1. Create a screen recording of the template builder in use
+2. Convert it to GIF format (recommended) or MP4
+3. Place the file in the `/public` directory
+4. Reference it in markdown as shown above: `![Template Builder Demo](demo.gif)`
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+To learn more about the technologies used:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [Next.js Documentation](https://nextjs.org/docs)
+- [React DnD](https://react-dnd.github.io/react-dnd/about)
+- [Monaco Editor](https://microsoft.github.io/monaco-editor/)
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme).
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

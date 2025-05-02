@@ -2,7 +2,7 @@
 
 A powerful Next.js-based visual template builder that allows you to create, manage, and customize website templates with a drag-and-drop interface.
 
-![Template Builder Demo](https://i.imgur.com/ewJ0GgP.gif)
+![demo](https://i.imgur.com/ewJ0GgP.gif)
 
 ## Features
 
